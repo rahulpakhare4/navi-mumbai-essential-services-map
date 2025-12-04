@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Navi Mumbai Emergency Web Map</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<style>
+    #map { height: 100vh; width: 100vw; }
+
+    /* Zoom bottom-right */
+    .leaflet-bottom.leaflet-right {
+        margin-bottom: 40px !important;
+    }
+
+    /* Legend */
+    .legend {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        line-height: 18px;
+        font-size: 14px;
+        box-shadow: 0 0 5px rgba(0,0,0,0.4);
+    }
+    .legend i {
+        width: 14px;
+        height: 14px;
+        float: left;
+        margin-right: 8px;
+        opacity: 0.9;
+    }
+
+    /* Labels */
+    .leaflet-tooltip {
+        font-size: 12px;
+        font-weight: bold;
+        color: black;
+        background: rgba(255,255,255,0.85);
+        border: 1px solid #777;
+    }
+
+    /* Label Toggle Button */
+    #labelToggleBtn {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 1000;
+        background: #0066ff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+</style>
+</head>
+
+<body>
+
+<button id="labelToggleBtn">Hide Labels</button>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// =============================
+// INIT MAP
+// =============================
+var map = L.map('map', {
+    center: [19.05, 73.02],
+    zoom: 11,
+    zoomControl: false
+});
+
+// Move zoom control bottom-right
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// =============================
+// BASEMAPS
+// =============================
+var osm = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 20, attribution: "© OpenStreetMap" }
+);
+
+var satellite = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { maxZoom: 20, attribution: "Esri Satellite" }
+).addTo(map);   // DEFAULT BASEMAP
+
+// =============================
+// COLORS
+// =============================
+var fireColor = "red";
+var policeColor = "blue";
+var hospitalColor = "green";
+var uhcColor = "orange";
+
+// =============================
+// LAYER GROUPS
+// =============================
+var fireLayer = L.layerGroup();
+var policeLayer = L.layerGroup();
+var hospitalLayer = L.layerGroup();
+var uhcLayer = L.layerGroup();
+
+var allMarkers = [];  // store markers for label toggle
+
+// =============================
+// ADD POINT FUNCTION
+// =============================
+function addPoint(layer, lat, lon, name, color) {
+    var marker = L.circleMarker([lat, lon], {
+        radius: 7,
+        color: color,
+        fillColor: color,
+        fillOpacity: 1
+    }).addTo(layer);
+
+    marker.bindTooltip(name, { permanent: true, direction: "right" });
+    marker.bindPopup("<b>" + name + "</b>");
+
+    allMarkers.push(marker); 
+}
+
+// =============================
+// FIRE STATIONS (DEFAULT ON)
+// =============================
+var fireStations = [
+["Vashi Fire Station",72.998282,19.076422],
+["CBD / Belapur Fire Station",73.04065,19.024375],
+["Airoli Fire Station",72.998763,19.156087],
+["Kalamboli Fire Station",73.105225,19.02573],
+["New Panvel Fire Station",73.118972,18.996046],
+["MIDC Brigade Fire Station",73.017264,19.095451],
+["Ulwe Fire Station (Training Center)",73.028075,18.97573],
+["Kharghar Fire Station",73.063516,19.038893],
+["Midc Fire Station",73.030599,19.055336],
+["Koparkhairane Fire Station",73.006359,19.11106],
+["Rabale Fire Brigade",73.00967,19.137508],
+["Nerul Fire Brigade",73.02532,19.023677]
+];
+fireStations.forEach(pt => addPoint(fireLayer, pt[2], pt[1], pt[0], fireColor));
+fireLayer.addTo(map);  // Only this is ON by default
+
+// =============================
+// POLICE STATIONS (OFF INITIALLY)
+// =============================
+var policeStations = [
+["Vashi Police Station",72.994867,19.072406],
+["APMC Police Station",73.007352,19.081108],
+["Kopar Khairane Police Station",73.001555,19.113249],
+["Rabale Police Station",73.001931,19.13569],
+["Rabale (MIDC) Police Station",73.001155,19.14623],
+["Turbhe (MIDC) Police Station",73.020163,19.064575],
+["Sanpada Police Station",73.010718,19.062653],
+["Nerul Police Station",73.01887,19.028703],
+["NRI Coastal Police Station",73.028758,19.008229],
+["CBD Belapur Police Station",73.041338,19.025338],
+["Kharghar Police Station",73.068078,19.034649],
+["Taloja Police Station",73.115494,19.061394],
+["Kalamboli Police Station",73.104976,19.024625],
+["Khandeshwar Police Station",73.109977,19.00714],
+["Kamothe Police Station",73.091048,19.022442],
+["Panvel City Police Station",73.105778,18.995203],
+["Panvel Taluka Police Station",73.108144,18.994078],
+["Ulwe Police Station",73.01216,18.967348],
+["Uran Police Station",72.939499,18.880493],
+["Nhava Sheva Police Station",72.977329,18.912502],
+["Mora Police Station",72.928289,18.910236]
+];
+policeStations.forEach(pt => addPoint(policeLayer, pt[2], pt[1], pt[0], policeColor));
+
+// =============================
+// HOSPITALS (OFF INITIALLY)
+// =============================
+var hospitals = [
+["NMMC Hospital Vashi",72.996206,19.082848],
+["NMMC Hospital Belapur",73.033082,19.013653],
+["Rajmata Jijau Hospital, Airoli",72.997233,19.156542],
+["Shree Ramtanu Mata-Bal Hospital",73.013958,19.069091],
+["ESIS Hospital",72.989752,19.074614],
+["NMMC Hospital Nerul",73.015455,19.036117],
+["Sub District Hospital Panvel",73.107823,18.99054]
+];
+hospitals.forEach(pt => addPoint(hospitalLayer, pt[2], pt[1], pt[0], hospitalColor));
+
+// =============================
+// UHC / UPHC (OFF INITIALLY)
+// =============================
+var uhcPoints = [
+["UHC, CBD Belapur",73.041234,19.029663],
+["UPHC-13, Kalamboli",73.090856,19.036267],
+["UHC, New Panvel (East)",73.123867,18.994536],
+["UPHC-2, Panvel",73.107641,18.982736],
+["UHP Sanpada, NMMC",73.014511,19.064762],
+["UPHC, Ulwe",73.031964,18.979816],
+["UPHC, Centre-1, Panvel",73.111908,18.990808],
+["UPHC, Kopar Khairane",73.003867,19.097141],
+["UPHC, Post Pawane",73.021001,19.089934],
+["UPHC, Vashi Nagar",72.996876,19.071892],
+["UPHC, Digha",72.996312,19.175163]
+];
+uhcPoints.forEach(pt => addPoint(uhcLayer, pt[2], pt[1], pt[0], uhcColor));
+
+// =============================
+// LAYER CONTROL
+// =============================
+var baseMaps = {
+    "Satellite": satellite,
+    "OpenStreetMap": osm
+};
+
+var overlays = {
+    "Fire Stations": fireLayer,
+    "Police Stations": policeLayer,
+    "Hospitals": hospitalLayer,
+    "UHC / UPHC": uhcLayer
+};
+
+L.control.layers(baseMaps, overlays, { position: "topright", collapsed:false }).addTo(map);
+
+// =============================
+// LABEL TOGGLE BUTTON
+// =============================
+let labelsVisible = true;
+
+document.getElementById("labelToggleBtn").addEventListener("click", function () {
+    labelsVisible = !labelsVisible;
+
+    allMarkers.forEach(marker => {
+        if (labelsVisible) marker.openTooltip();
+        else marker.closeTooltip();
+    });
+
+    this.textContent = labelsVisible ?
+        "Hide Labels" : "Show Labels";
+});
+
+// Make labels visible initially
+allMarkers.forEach(m => m.openTooltip());
+
+// =============================
+// LEGEND
+// =============================
+var legend = L.control({ position: "bottomleft" });
+
+legend.onAdd = function () {
+    var div = L.DomUtil.create("div", "legend");
+    div.innerHTML += "<b>Legend</b><br>";
+    div.innerHTML += '<i style="background:'+fireColor+'"></i>Fire Stations<br>';
+    div.innerHTML += '<i style="background:'+policeColor+'"></i>Police Stations<br>';
+    div.innerHTML += '<i style="background:'+hospitalColor+'"></i>Hospitals<br>';
+    div.innerHTML += '<i style="background:'+uhcColor+'"></i>UHC / UPHC<br>';
+    return div;
+};
+legend.addTo(map);
+
+</script>
+
+</body>
+</html>
